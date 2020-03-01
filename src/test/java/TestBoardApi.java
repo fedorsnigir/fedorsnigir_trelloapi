@@ -1,32 +1,45 @@
 import api.BoardApi;
 import beans.Board;
-import org.testng.annotations.BeforeTest;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import static enums.ColorsEnum.RED;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.nullValue;
 
 public class TestBoardApi {
     private String id;
-    private String name = "test board";
-    private String description = "test description";
-    private String newName = "new test board";
-    private String newDescription = "new test description";
-    private String newColor = "red";
+    private String name;
+    private String description;
+    private String newName = RandomStringUtils.randomAlphanumeric(10);
+    private String newDescription = RandomStringUtils.randomAlphanumeric(10);
+    private String newColor = RED.value;
     private Board board;
 
-    @BeforeTest
+    @BeforeMethod
     public void prepareBoard() {
-        board = BoardApi.with()
-                .setDescription(description)
-                .createBoard(name);
+        board = BoardApi.with().createBoard();
         id = board.id;
+        name = board.name;
+        description = board.desc;
+    }
+
+    @AfterMethod
+    public void removeBoard() {
+        BoardApi.with().removeBoard(id);
+
+        BoardApi.with()
+                .getResponse(id)
+                .then()
+                .specification(BoardApi.notFoundResponseSpecification());
     }
 
     @Test
     public void checkBoardCreated() {
         assertThat(board.closed, is(false));
+        assertThat(board.id, is(id));
         assertThat(board.name, is(name));
         assertThat(board.desc, is(description));
     }
@@ -51,20 +64,12 @@ public class TestBoardApi {
         assertThat(board.prefs.background, is(newColor));
     }
 
-    @Test (priority = 4)
+    @Test
     public void checkBoardClosed() {
         board = BoardApi.with()
                 .setClosed(true)
                 .editBoard(id);
 
         assertThat(board.closed, is(true));
-    }
-
-    @Test (priority = 5)
-    public void checkBoardRemoved() {
-        board = BoardApi.with()
-                .removeBoard(id);
-
-        assertThat(board.id, nullValue());
     }
 }

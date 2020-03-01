@@ -5,8 +5,12 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
+import io.restassured.builder.ResponseSpecBuilder;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
+import io.restassured.specification.ResponseSpecification;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.http.HttpStatus;
 
 import java.util.HashMap;
 
@@ -34,6 +38,12 @@ public class BoardApi {
                 .setAccept(JSON)
                 .addQueryParam("key", PROPERTY_KEY)
                 .addQueryParam("token", PROPERTY_TOKEN)
+                .build();
+    }
+
+    public static ResponseSpecification notFoundResponseSpecification() {
+        return new ResponseSpecBuilder()
+                .expectStatusCode(HttpStatus.SC_NOT_FOUND)
                 .build();
     }
 
@@ -69,9 +79,21 @@ public class BoardApi {
             return this;
         }
 
-        public Board createBoard(String name) {
+        public Response getResponse(String id) {
+            return RestAssured.with()
+                    .queryParam("id", id)
+                    .queryParams(boardApi.params)
+                    .spec(requestSpecification())
+                    .baseUri(BOARDS_PATH + id)
+                    .log().all()
+                    .request(GET)
+                    .prettyPeek();
+        }
+
+        public Board createBoard() {
             Response response = RestAssured.with()
-                    .queryParam("name", name)
+                    .queryParam("name", RandomStringUtils.randomAlphanumeric(10))
+                    .queryParam("desc", RandomStringUtils.randomAlphanumeric(10))
                     .queryParams(boardApi.params)
                     .spec(requestSpecification())
                     .baseUri(BOARDS_PATH)
@@ -92,15 +114,14 @@ public class BoardApi {
             return makeBoardFromResponce(response);
         }
 
-        public Board removeBoard(String id) {
-            Response response = RestAssured.with()
+        public void removeBoard(String id) {
+            RestAssured.with()
                     .queryParams(boardApi.params)
                     .spec(requestSpecification())
                     .baseUri(BOARDS_PATH + id)
                     .log().all()
                     .request(DELETE)
                     .prettyPeek();
-            return makeBoardFromResponce(response);
         }
     }
 }
